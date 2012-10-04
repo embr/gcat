@@ -52,7 +52,7 @@ def get_service(args):
                                scope=args.scope,
                                redirect_uri=args.redirect_uri)
 
-    credentials = get_credentials(args)
+    credentials = get_credentials(flow, args)
 
     http = httplib2.Http()
     http = credentials.authorize(http)
@@ -61,7 +61,7 @@ def get_service(args):
     return service
 
 
-def get_credentials(args):
+def get_credentials(flow, args):
     storage = Storage(args.store)
     credentials = storage.get()
     if not credentials:
