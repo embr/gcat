@@ -100,11 +100,16 @@ def download(service, file):
 
 
 def merge_config(args, yaml_name):
-    logging.debug('merging config from file: %s', yaml_name)
-    config = yaml.load(open(yaml_name, 'r'))
-    for k, v in config.items():
-        if not hasattr(args,k) or getattr(args, k) is None:
-            setattr(args,k,v)
+    try:
+        with open(yaml_name, 'r') as f:
+            config = yaml.load(f)
+            logging.debug('merging command-line args with config from file: %s', yaml_name)
+            for k, v in config.items():
+                if not hasattr(args,k) or getattr(args, k) is None:
+                    setattr(args,k,v)
+    except IOError:
+        logging.error('Could not find config file at %s', yaml_name)
+        sys.exit()
 
 
 class Join(argparse.Action):
