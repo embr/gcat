@@ -1,0 +1,4 @@
+client_id:     '<your_client_id_here>'
+client_secret: '<your_client_secret_here>'
+scope:        'https://www.googleapis.com/auth/drive'
+redirect_uri:  'urn:ietf:wg:oauth:2.0:oob'
