@@ -1,7 +1,7 @@
 gcat
 ====
 
-A simple utility for grabbing google spreadsheets and printing them to the command-line stdout
+A simple utility for grabbing Google Drive spreadsheets and printing them to the command-line stdout
 
 ##Introduction
 `gcat` is simple command-line utility aimed at helping analysts integrate spreadsheets
@@ -9,7 +9,7 @@ living in Google Drive into their existing command-line environment by printing 
 By default it stores installation specific configuration in `~/.gcat/config` and 
 stores user specific credentials as a json object in `~/.gcat/store`.
 
-As a simple example, perhaps you have a cron job that needs to integrate information updated in a google
+As a simple example, perhaps you have a cron job that needs to integrate information updated in a Google
 spreadsheet.  You can downlaod the file, extract some columns and pipe the rows to the relevant utility with
 a crontab line like:
 
@@ -17,7 +17,7 @@ a crontab line like:
 0 0 1 * * gcat My Google Doc | cut -f1,4 | xargs my_utility
 ````
 
-or create a set of automatically updated files which live on google drive
+or create a set of automatically updated files which live on Google Drive
 
 ````
 0 0 1 * * gcat My Google Doc > /home/embr/data/mydoc`date +"\%Y-\%m-\%d"`.csv
@@ -33,7 +33,7 @@ $ [sudo] pip install -e .
 
 ### Google Drive SDK
 In order to actually use the tool to access the document however, you'll need to first
-register your installation as an "installed application" with google. To do this, follow the instuctions from google [here](https://developers.google.com/drive/quickstart).
+register your installation as an "installed application" with Google. To do this, follow the instuctions from Google [here](https://developers.google.com/drive/quickstart).
 Once you've installed gcat on your system and gone through the registration process,
 you'll need to copy the client id, client secret, into the config file created at `~/.gcat/config`
 replacing <your_client_id_here> and <your_client_id_here> with your actual information.
