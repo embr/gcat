@@ -4,13 +4,13 @@ gcat
 A simple utility for grabbing google spreadsheets and printing them to the command-line stdout
 
 ##Introduction
-`gcat` is simple command-line utility aimed at helping analysts integrate columnar data
-living in google drive into their existing command-line environment.  Basically it is a simple
-tool for printing a google drive file to the stdout.  By default it stores installation specific
-configuration in `~/.gcat/config` and stores user specific credentials as a json object in '~/.gcat/store'.
+`gcat` is simple command-line utility aimed at helping analysts integrate spreadsheets
+living in Google Drive into their existing command-line environment by printing a file to stdout.
+By default it stores installation specific configuration in `~/.gcat/config` and 
+stores user specific credentials as a json object in `~/.gcat/store`.
 
-as simple example, perhaps you have a cron job that needs to integrate information updated in a google
-spreadsheet.  You can downlaod the file, extract a column and pipe it to the relevant utility with
+As a simple example, perhaps you have a cron job that needs to integrate information updated in a google
+spreadsheet.  You can downlaod the file, extract some columns and pipe the rows to the relevant utility with
 a crontab line like:
 
 ````
@@ -24,11 +24,7 @@ or create a set of automatically updated files which live on google drive
 ````
 
 ## Installation
-`gcat` is packaged with setuptools so it can be easily installed manually with
-
-````$ python setup.py install````
-
-or with almost all standard python installation frameworks (easy_install, pip)
+`gcat` is packaged with setuptools so it can be easily installed with pip like this:
 
 ````
 $ cd gcat/
