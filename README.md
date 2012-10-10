@@ -23,6 +23,22 @@ or create a set of automatically updated files which live on Google Drive
 0 0 1 * * gcat My Google Doc > /home/embr/data/mydoc`date +"\%Y-\%m-\%d"`.csv
 ````
 
+In addition to the `gcat` command-line utility the gcat module also provides a programmatic interface for grabbing
+Google Drive documents with a single line (assuming you've already set up your config file).
+
+````python
+import gcat
+rows = gcat.get_file('My File Name')
+print rows
+````
+
+which returns a list of dicts that might look like this for a restaurant review document populated by a Google Form:
+
+````
+[{'reviewer' : 'Evan Rosen', 'restaurant' : 'Bar Tartine', 'Food' : 22, 'Decor' : 19, 'Service' : 17, 'Cost' : '$$'}
+ {'reviewer' : 'Evan Rosen', 'restaurant' : 'Delfina', 'Food' : 21, 'Decor' : 20, 'Service' : 20, 'Cost' : '$$$'}]
+````
+
 ## Installation
 `gcat` is packaged with setuptools so it can be easily installed with pip like this:
 
