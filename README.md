@@ -1,34 +1,46 @@
 gcat
 ====
 
-A simple utility for grabbing google spreadsheets and printing them to the command-line stdout
+A simple utility for grabbing Google Drive spreadsheets and printing them to the command-line stdout
 
 ##Introduction
-`gcat` is simple command-line utility aimed at helping analysts integrate columnar data
-living in google drive into their existing command-line environment.  Basically it is a simple
-tool for printing a google drive file to the stdout.  By default it stores installation specific
-configuration in `~/.gcat/config` and stores user specific credentials as a json object in '~/.gcat/store'.
+`gcat` is simple command-line utility aimed at helping analysts integrate spreadsheets
+living in Google Drive into their existing command-line environment by printing a file to stdout.
+By default it stores installation specific configuration in `~/.gcat/config` and 
+stores user specific credentials as a json object in `~/.gcat/store`.
 
-as simple example, perhaps you have a cron job that needs to integrate information updated in a google
-spreadsheet.  You can downlaod the file, extract a column and pipe it to the relevant utility with
+As a simple example, perhaps you have a cron job that needs to integrate information updated in a Google
+spreadsheet.  You can downlaod the file, extract some columns and pipe the rows to the relevant utility with
 a crontab line like:
 
 ````
 0 0 1 * * gcat My Google Doc | cut -f1,4 | xargs my_utility
 ````
 
-or create a set of automatically updated files which live on google drive
+or create a set of automatically updated files which live on Google Drive
 
 ````
 0 0 1 * * gcat My Google Doc > /home/embr/data/mydoc`date +"\%Y-\%m-\%d"`.csv
 ````
 
+In addition to the `gcat` command-line utility the gcat module also provides a programmatic interface for grabbing
+Google Drive documents with a single line (assuming you've already set up your config file).
+
+````python
+import gcat
+rows = gcat.get_file('My File Name')
+print rows
+````
+
+which returns a list of dicts that might look like this for a restaurant review document populated by a Google Form:
+
+````
+[{'reviewer' : 'Evan Rosen', 'restaurant' : 'Bar Tartine', 'Food' : 22, 'Decor' : 19, 'Service' : 17, 'Cost' : '$$'}
+ {'reviewer' : 'Evan Rosen', 'restaurant' : 'Delfina', 'Food' : 21, 'Decor' : 20, 'Service' : 20, 'Cost' : '$$$'}]
+````
+
 ## Installation
-`gcat` is packaged with setuptools so it can be easily installed manually with
-
-````$ python setup.py install````
-
-or with almost all standard python installation frameworks (easy_install, pip)
+`gcat` is packaged with setuptools so it can be easily installed with pip like this:
 
 ````
 $ cd gcat/
@@ -37,7 +49,7 @@ $ [sudo] pip install -e .
 
 ### Google Drive SDK
 In order to actually use the tool to access the document however, you'll need to first
-register your installation as an "installed application" with google. To do this, follow the instuctions from google [here](https://developers.google.com/drive/quickstart).
+register your installation as an "installed application" with Google. To do this, follow the instuctions from Google [here](https://developers.google.com/drive/quickstart).
 Once you've installed gcat on your system and gone through the registration process,
 you'll need to copy the client id, client secret, into the config file created at `~/.gcat/config`
 replacing <your_client_id_here> and <your_client_id_here> with your actual information.
