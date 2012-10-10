@@ -13,7 +13,8 @@ import logging
 
 from operator import itemgetter
 import webbrowser
-import yaml, json, pprint
+import yaml, csv, json, pprint
+import StringIO
 
 
 """
@@ -32,8 +33,31 @@ root_logger.addHandler(ch)
 root_logger.setLevel(logging.DEBUG)
 
 
-def get_file(args):
-    service = get_service(args)
+def default_options():
+    defaults = {}
+    defaults['store'] = os.path.expanduser('~/.gcat/store')
+    defaults['config'] = os.path.expanduser('~/.gcat/config')
+    defaults['redirect_uri'] = 'urn:ietf:wg:oauth:2.0:oob'
+    return defaults
+     
+def load_config(opts):
+    if 'config' in opts:
+        try:
+            with open(opts['config'], 'r') as f:
+                config = yaml.load(f)
+                return dict(config)
+        except IOError:
+            logging.error('Could not find config file at %s', yaml_name)
+            sys.exit()
+    else:
+        return {}
+
+def get_file(as_dict=True, **kwargs):
+    opts = default_options()
+    opts.update(load_config(opts))
+    opts.update(kwargs)
+
+    service = get_service(opts)
     files = service.files()
     try:
         res = files.list().execute()
@@ -41,18 +65,28 @@ def get_file(args):
         logging.error('An error occurred: %s', exc_info=error)
         raise error
 
-    idx = map(itemgetter('title'), res['items']).index(args.title)
+    idx = map(itemgetter('title'), res['items']).index(opts['title'])
+    if idx == -1:
+        raise ValueError('name %s not found in Google Drive' % opts['title'])
     file = res['items'][idx]
     content = download(service, file)
-    return content
 
-def get_service(args):
-    flow = OAuth2WebServerFlow(client_id=args.client_id,
-                               client_secret=args.client_secret,
-                               scope=args.scope,
-                               redirect_uri=args.redirect_uri)
+    if as_dict:
+        reader = csv.DictReader(StringIO.StringIO(content))
+        parsed = []
+        for line in reader:
+            parsed.append(dict(filter(lambda (k,v): v, line.items())))
+    else:
+        parsed = csv.reader(StringIO.StringIO(content))
+    return parsed
 
-    credentials = get_credentials(flow, args)
+def get_service(opts):
+    flow = OAuth2WebServerFlow(client_id=opts['client_id'],
+                               client_secret=opts['client_secret'],
+                               scope=opts['scope'],
+                               redirect_uri=opts['redirect_uri'])
+
+    credentials = get_credentials(flow, opts)
 
     http = httplib2.Http()
     http = credentials.authorize(http)
@@ -61,8 +95,8 @@ def get_service(args):
     return service
 
 
-def get_credentials(flow, args):
-    storage = Storage(args.store)
+def get_credentials(flow, opts):
+    storage = Storage(opts['store'])
     credentials = storage.get()
     if not credentials:
         # get the credentials the hard way
@@ -99,14 +133,14 @@ def download(service, file):
         return None    
 
 
-def merge_config(args, yaml_name):
+def merge_config(opts, yaml_name):
     try:
         with open(yaml_name, 'r') as f:
             config = yaml.load(f)
-            logging.debug('merging command-line args with config from file: %s', yaml_name)
+            logging.debug('merging command-line opts with config from file: %s', yaml_name)
             for k, v in config.items():
-                if not hasattr(args,k) or getattr(args, k) is None:
-                    setattr(args,k,v)
+                if not hasattr(opts,k) or getattr(opts, k) is None:
+                    setattr(opts,k,v)
     except IOError:
         logging.error('Could not find config file at %s', yaml_name)
         sys.exit()
@@ -114,16 +148,15 @@ def merge_config(args, yaml_name):
 
 class Join(argparse.Action):
     def __call__(self, parser, namespace, values, option_string=None):
-        setattr(namespace, self.dest, ' '.join(values))
+        if not isinstance(values, str):
+            setattr(namespace, self.dest, ' '.join(values))
 
 
-def parse_args():
+def parse_args(**kwopts):
     parser = argparse.ArgumentParser(description='print a google spreadsheet to stdout')
     parser.add_argument('--store',
-                        default=os.path.expanduser('~/.gcat/store'),
                         help='location where gcat will store file specific credentials')
     parser.add_argument('--config',
-                        default=os.path.expanduser('~/.gcat/config'),
                         help='a yaml file specifying the client_id, client_secret, scope, and redirect_uri')
     parser.add_argument('--client_id',
                         help='google api client id. this can be found at the google api console.  Note that'
@@ -136,7 +169,6 @@ def parse_args():
     parser.add_argument('--scope',
                         help='list of scopes for which your client is authorized')
     parser.add_argument('--redirect_uri',
-                        default='urn:ietf:wg:oauth:2.0:oob',
                         help='google api redirect URI. this can be found at the google api console under the \"Redirect URI\"'
                         'section.  By default a client if assigned two valid redirect URIs: urn:ietf:wg:oauth:2.0:oob '
                         'and http://localhostl.  use the urn:ietf:wg:oauth:2.0:oob unless you are doing something fancy.'
@@ -149,17 +181,17 @@ def parse_args():
     args = parser.parse_args()
     merge_config(args, args.config)
     logging.info('\n' + pprint.pformat(vars(args)))
-    return args
+    return vars(args)
     
 
-def write(file_obj):
-    pass
+def write_to_stdout(content):
+    for line in content:
+        print '\t'.join(line)
 
 
 def main():
-    args = parse_args()
-    file = get_file(args)
-    print file
+    content = get_file(as_dict=False, **parse_args())
+    write_to_sdtout(content)
 
 
 if __name__ == '__main__':
