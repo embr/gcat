@@ -16,22 +16,11 @@ import webbrowser
 import yaml, csv, json, pprint
 import StringIO
 
-
-"""
-logging set up
-"""
 LOGLEVELS = {'DEBUG': logging.DEBUG,
              'INFO': logging.INFO,
              'WARNING': logging.WARNING,
              'ERROR': logging.ERROR,
              'CRITICAL': logging.CRITICAL}  
-root_logger = logging.getLogger()
-ch = logging.StreamHandler()
-formatter = logging.Formatter('[%(levelname)s]\t[%(filename)s:%(funcName)s:%(lineno)d]\t%(message)s')
-ch.setFormatter(formatter)
-root_logger.addHandler(ch)
-root_logger.setLevel(logging.DEBUG)
-
 
 def default_options():
     defaults = {}
@@ -54,8 +43,9 @@ def load_config(opts):
 
 def get_file(as_dict=True, **kwargs):
     opts = default_options()
-    opts.update(load_config(opts))
-    opts.update(kwargs)
+    opts.update((k,v) for k, v in load_config(opts).items() if v is not None)
+    opts.update((k,v) for k, v in kwargs.items() if v is not None)
+    logging.info('opts:\n%s', pprint.pformat(opts))
 
     service = get_service(opts)
     files = service.files()
@@ -79,6 +69,7 @@ def get_file(as_dict=True, **kwargs):
     else:
         parsed = csv.reader(StringIO.StringIO(content))
     return parsed
+
 
 def get_service(opts):
     flow = OAuth2WebServerFlow(client_id=opts['client_id'],
@@ -179,8 +170,6 @@ def parse_args(**kwopts):
                         help='The name of the google drive file in question.  If the name has spaces, gcat will do the '
                         ' right thing and treat a sequence of space delimited words as a single file name')
     args = parser.parse_args()
-    merge_config(args, args.config)
-    logging.info('\n' + pprint.pformat(vars(args)))
     return vars(args)
     
 
@@ -190,8 +179,18 @@ def write_to_stdout(content):
 
 
 def main():
+    """
+    logging set up
+    """
+    root_logger = logging.getLogger()
+    ch = logging.StreamHandler()
+    formatter = logging.Formatter('[%(levelname)s]\t[%(filename)s:%(funcName)s:%(lineno)d]\t%(message)s')
+    ch.setFormatter(formatter)
+    root_logger.addHandler(ch)
+    root_logger.setLevel(logging.DEBUG)
+
     content = get_file(as_dict=False, **parse_args())
-    write_to_sdtout(content)
+    write_to_stdout(content)
 
 
 if __name__ == '__main__':
