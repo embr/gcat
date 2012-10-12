@@ -15,6 +15,7 @@ from operator import itemgetter
 import webbrowser
 import yaml, csv, json, pprint
 import StringIO
+import shelve
 
 LOGLEVELS = {'DEBUG': logging.DEBUG,
              'INFO': logging.INFO,
@@ -26,6 +27,8 @@ def default_options():
     defaults = {}
     defaults['store'] = os.path.expanduser('~/.gcat/store')
     defaults['config'] = os.path.expanduser('~/.gcat/config')
+    defaults['cache'] = os.path.expanduser('~/.gcat/cache')
+    defaults['usecache'] = False
     defaults['redirect_uri'] = 'urn:ietf:wg:oauth:2.0:oob'
     return defaults
      
@@ -41,25 +44,38 @@ def load_config(opts):
     else:
         return {}
 
+
 def get_file(as_dict=True, **kwargs):
+    logging.debug('computing from scratch')
     opts = default_options()
     opts.update((k,v) for k, v in load_config(opts).items() if v is not None)
     opts.update((k,v) for k, v in kwargs.items() if v is not None)
     logging.info('opts:\n%s', pprint.pformat(opts))
 
-    service = get_service(opts)
-    files = service.files()
-    try:
-        res = files.list().execute()
-    except errors.HttpError, error:
-        logging.error('An error occurred: %s', exc_info=error)
-        raise error
+    cache = shelve.open(opts['cache'])
+    # opts['timestamp' : datetime.date.today()] # TODO: add a timestamp to discard old caches
+    if opts['usecache'] and opts['title'] in cache:
+        content = cache[opts['title']]
+    else:
+        service = get_service(opts)
+        files = service.files()
+        try:
+            res = files.list().execute()
+        except errors.HttpError, error:
+            logging.error('An error occurred: %s', exc_info=error)
+            raise error
 
-    idx = map(itemgetter('title'), res['items']).index(opts['title'])
-    if idx == -1:
-        raise ValueError('name %s not found in Google Drive' % opts['title'])
-    file = res['items'][idx]
-    content = download(service, file)
+        names = map(itemgetter('title'), res['items'])
+        try:
+            idx = names.index(opts['title'])
+        except ValueError:
+            logging.error('file name: %s not in list', opts['title'])
+            sys.exit()
+        if idx == -1:
+            raise ValueError('name %s not found in Google Drive' % opts['title'])
+        file = res['items'][idx]
+        content = download(service, file)
+        cache[opts['title']] = content
 
     if as_dict:
         reader = csv.DictReader(StringIO.StringIO(content))
@@ -67,7 +83,8 @@ def get_file(as_dict=True, **kwargs):
         for line in reader:
             parsed.append(dict(filter(lambda (k,v): v, line.items())))
     else:
-        parsed = csv.reader(StringIO.StringIO(content))
+        parsed = list(csv.reader(StringIO.StringIO(content)))
+
     return parsed
 
 
@@ -167,8 +184,13 @@ def parse_args(**kwopts):
     parser.add_argument('title',
                         nargs='+',
                         action=Join,
-                        help='The name of the google drive file in question.  If the name has spaces, gcat will do the '
+                        help='the name of the google drive file in question.  If the name has spaces, gcat will do the '
                         ' right thing and treat a sequence of space delimited words as a single file name')
+    parser.add_argument('--cache',
+                        help='location in which gcat will store documents when the --usecache flag is given')
+    parser.add_argument('--usecache',
+                        action='store_true',
+                        help='instructs gcat to use the cache located in a file specified by the --cache option')
     args = parser.parse_args()
     return vars(args)
     
