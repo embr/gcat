@@ -45,9 +45,10 @@ def load_config(opts):
         return {}
 
 
-def get_file(as_dict=True, **kwargs):
+def get_file(title, as_dict=True, **kwargs):
     logging.debug('computing from scratch')
     opts = default_options()
+    opts['title'] = title
     opts.update((k,v) for k, v in load_config(opts).items() if v is not None)
     opts.update((k,v) for k, v in kwargs.items() if v is not None)
     logging.info('opts:\n%s', pprint.pformat(opts))
