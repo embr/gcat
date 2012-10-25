@@ -13,7 +13,7 @@ import logging
 
 from operator import itemgetter
 import webbrowser
-import yaml, csv, json, pprint
+import yaml, csv, json, xlrd, pprint
 import StringIO
 import shelve
 
@@ -45,7 +45,7 @@ def load_config(opts):
         return {}
 
 
-def get_file(title, as_dict=True, **kwargs):
+def get_file(title, fmt='dict', **kwargs):
     logging.debug('computing from scratch')
     opts = default_options()
     opts['title'] = title
@@ -53,8 +53,34 @@ def get_file(title, as_dict=True, **kwargs):
     opts.update((k,v) for k, v in kwargs.items() if v is not None)
     logging.info('opts:\n%s', pprint.pformat(opts))
 
+    sheet = get_sheet(opts)
+
+    if fmt == 'dict':
+        labels = sheet.row_values(0)
+        dict_rows = []
+        for i in range(1,sheet.nrows):
+            dict_row = dict(zip(labels, sheet.row_values(i)))
+            dict_rows.append(dict(filter(lambda (k,v): len(str(v)) > 0, dict_row.items())))
+        rows = dict_rows
+    if fmt == 'xlrd':
+        return rows
+    return rows
+
+
+def get_sheet(opts):
+    content = get_content(opts)
+    wb = xlrd.open_workbook(file_contents=content)
+    if 'sheet' in opts:
+        sheet = wb.sheet_by_name(opts['sheet'])
+    elif 'sheet_index' in opts:
+        sheet = wb.sheet_by_index(opts['sheet_index'])
+    else:
+        sheet = wb.sheet_by_index(0)
+    return sheet
+    
+
+def get_content(opts):
     cache = shelve.open(opts['cache'])
-    # opts['timestamp' : datetime.date.today()] # TODO: add a timestamp to discard old caches
     if opts['usecache'] and opts['title'] in cache:
         content = cache[opts['title']]
     else:
@@ -77,16 +103,7 @@ def get_file(title, as_dict=True, **kwargs):
         file = res['items'][idx]
         content = download(service, file)
         cache[opts['title']] = content
-
-    if as_dict:
-        reader = csv.DictReader(StringIO.StringIO(content))
-        parsed = []
-        for line in reader:
-            parsed.append(dict(filter(lambda (k,v): v, line.items())))
-    else:
-        parsed = list(csv.reader(StringIO.StringIO(content)))
-
-    return parsed
+    return content
 
 
 def get_service(opts):
@@ -125,9 +142,12 @@ def get_credentials(flow, opts):
 
 def download(service, file):
     logging.debug('file.viewkeys(): %s', pprint.pformat(file.viewkeys()))
-    # download_url = file.get('downloadUrl') # not present for some reason
-    download_url_pdf = file.get('exportLinks')['application/pdf']
-    download_url = re.sub('pdf$', 'csv', download_url_pdf)
+    #download_url = file.get('downloadUrl') # not present for some reason
+    #download_url_pdf = file.get('exportLinks')['application/pdf']
+    download_url = file.get('exportLinks')['application/vnd.openxmlformats-officedocument.spreadsheetml.sheet']
+    #download_url = re.sub('pdf$', 'csv', download_url_pdf)
+    #download_url = re.sub('&exportFormat=csv$', '#gid=0&exportFormat=csv', download_url)
+    #logging.debug('file.get(\'exportlinks\': %s', file.get('exportLinks'))
     if download_url:
         resp, content = service._http.request(download_url)
         if resp.status == 200:
@@ -182,11 +202,24 @@ def parse_args(**kwopts):
                         'section.  By default a client if assigned two valid redirect URIs: urn:ietf:wg:oauth:2.0:oob '
                         'and http://localhostl.  use the urn:ietf:wg:oauth:2.0:oob unless you are doing something fancy.'
                         'see https://developers.google.com/accounts/docs/OAuth2InstalledApp for more info')
-    parser.add_argument('title',
+    parser.add_argument('--title',
                         nargs='+',
+                        metavar='title_word',
                         action=Join,
+                        required=True,
                         help='the name of the google drive file in question.  If the name has spaces, gcat will do the '
-                        ' right thing and treat a sequence of space delimited words as a single file name')
+                        ' right thing and join a sequence of command line arguments with space')
+    sheet_group = parser.add_mutually_exclusive_group()
+    sheet_group.add_argument('--sheet',
+                        nargs='+',
+                        metavar='sheet_word',
+                        action=Join,
+                        help='sheet name within the spreadsheet.  If neither --sheet nor --sheet_id arguments are given '
+                        'gcat will default to sheet_id=0. If the name has spaces, gcat will do the right thing and join '
+                        'a sequence of command line arguments with spaces.')
+    sheet_group.add_argument('--sheet_id',
+                        type=int,
+                        help='sheet index within the spreadsheet.')
     parser.add_argument('--cache',
                         help='location in which gcat will store documents when the --usecache flag is given')
     parser.add_argument('--usecache',
@@ -198,7 +231,7 @@ def parse_args(**kwopts):
 
 def write_to_stdout(content):
     for line in content:
-        print '\t'.join(line)
+        print '\t'.join(map(str, line))
 
 
 def main():
