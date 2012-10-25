@@ -18,6 +18,7 @@ setup(
        "oauth2client >= 1.0",
        "google-api-python-client >= 1.0",
        "httplib2 >= 0.7.6",
+       "xlrd >= 0.8.0"
        ],
     include_package_data = True
     )
