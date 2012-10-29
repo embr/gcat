@@ -84,10 +84,12 @@ def get_file(title, fmt='dict', **kwargs):
                     fmt_sheet.append(dict(filter(lambda (k,v): len(unicode(v)) > 0, dict_row.items())))
                 if fmt == 'pandas':
                     fmt_sheet = pd.DataFrame(fmt_sheet)
-            elif fmt == 'csv':
+            elif fmt == 'list':
                 fmt_sheet = [sheet.row_values(i) for i in range(1,sheet.nrows)]
+            else:
+                raise ValueError('unkown format: %s' % fmt)
             sheets[sn] = fmt_sheet
-        if len(sheets) == 0:
+        if len(sheets) == 1:
             return sheets.values()[0]
         else:
             return sheets
