@@ -12,11 +12,13 @@ import re
 import logging
 
 from operator import itemgetter
+from collections import defaultdict
 import webbrowser
-import yaml, csv, json, xlrd, pprint
+import yaml, csv, json, pprint, xlrd
 import StringIO
 import shelve
 import pandas as pd
+import datetime
 
 LOGLEVELS = {'DEBUG': logging.DEBUG,
              'INFO': logging.INFO,
@@ -54,7 +56,7 @@ def get_file(title, fmt='dict', **kwargs):
     The `fmt` keyword argument determines the format of the return value.
     Here is the list of accepted formats and the corresponding return value type:
       * `dict`     : list of dicts (Default).
-      * `xlrd`     : xlrd.Book or xlrd.Sheet
+      * `xlrd`     : xlrd.Book (only full workbook is exported)
       * `list`     : list of lists
       * `pandas`   : Pandas.DataFrame
     For all formats other than `xlrd`, if no sheet name is given, get_file returns
@@ -69,30 +71,67 @@ def get_file(title, fmt='dict', **kwargs):
 
     content = get_content(opts)
     wb = xlrd.open_workbook(file_contents=content)
-    
-    if fmt == 'xlrd' and 'sheet' not in opts and 'sheet_id' not in opts:
-        return wb
-    else:
-        sheets = {}
-        for sn in get_sheet_names(wb, opts):
-            sheet = wb.sheet_by_name(sn)
-            if fmt == 'dict' or fmt=='pandas':
-                labels = sheet.row_values(0)
+
+    if fmt == 'xlrd':
+        if 'sheet' not in opts and 'sheet_id' not in opts:
+            return wb
+        else:
+            logger.warning('fmt: xlrd and sheet selection not supported, returning whole workbook')
+            return wb
+    else: # handle dict and pandas formats
+        parsed_wb = parse(wb, opts)
+        if fmt == 'list':
+            fmt_wb = parsed_wb
+        else:
+            fmt_wb = {}
+            for sheet_name, ws in parsed_wb.items():
+                labels = ws[0]
                 fmt_sheet = []
-                for i in range(1,sheet.nrows):
-                    dict_row = dict(zip(labels, sheet.row_values(i)))
+                for row in ws[1:]:
+                    dict_row = dict(zip(labels, row))
                     fmt_sheet.append(dict(filter(lambda (k,v): len(unicode(v)) > 0, dict_row.items())))
                 if fmt == 'pandas':
                     fmt_sheet = pd.DataFrame(fmt_sheet)
-            elif fmt == 'list':
-                fmt_sheet = [sheet.row_values(i) for i in range(1,sheet.nrows)]
-            else:
-                raise ValueError('unkown format: %s' % fmt)
-            sheets[sn] = fmt_sheet
-        if len(sheets) == 1:
-            return sheets.values()[0]
+                else:
+                    raise ValueError('unkown format: %s' % fmt)
+                fmt_wb[sheet_name] = fmt_sheet
+        if len(fmt_wb) == 1:
+            return fmt_wb.values()[0]
         else:
-            return sheets
+            return fmt_wb
+
+def parse(wb, opts):
+    parsers = {
+        0 : lambda c : None,
+        1 : lambda c : c,
+        2 : lambda c : c,
+        3 : lambda c : datetime.datetime(*xlrd.xldate_as_tuple(c, wb.datemode)),
+        4 : lambda c : bool,
+        5 : lambda c : None,
+        6 : lambda c : None,
+        }
+
+    parsed_wb = {}
+    for sn in get_sheet_names(wb, opts):
+        ws = wb.sheet_by_name(sn)
+        parsed_ws = []
+        for rowx in range(ws.nrows):
+            parsed_ws.append([None for i in range(ws.ncols)])
+            for colx in range(ws.ncols):
+                    raw_val = ws.cell_value(rowx, colx)
+                    parser = parsers[ws.cell_type(rowx, colx)]
+                    try:
+                        parsed_val = parser(raw_val)
+                    except:
+                        logging.exception('exception when trying to convert cell(rowx=%d, colx=%d, colname=%d)', rowx, colx, ws.cell_value(0,colx))
+                        logging.exception('type(raw_val): %s, raw_val: %s,  parser: %s', 
+                                          type(raw_val),
+                                          raw_val.encode('utf-8') if isinstance(raw_val, unicode) else str(raw_val),
+                                          parser)
+                        parsed_val = None
+                    parsed_ws[rowx][colx] = parsed_val
+        parsed_wb[sn] = parsed_ws
+    return parsed_wb
 
 
 def get_sheet_names(wb, opts):
