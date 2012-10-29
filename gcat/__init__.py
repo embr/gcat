@@ -16,6 +16,7 @@ import webbrowser
 import yaml, csv, json, xlrd, pprint
 import StringIO
 import shelve
+import pandas as pd
 
 LOGLEVELS = {'DEBUG': logging.DEBUG,
              'INFO': logging.INFO,
@@ -46,37 +47,60 @@ def load_config(opts):
 
 
 def get_file(title, fmt='dict', **kwargs):
-    logging.debug('computing from scratch')
+    """
+    Simple interface for grabbing a Google Drive file by title.  Retrieves
+    file in xlsx format and parses with `xlrd` (http://pypi.python.org/pypi/xlrd).
+    If keyword argument sheet_name or sheet_id is given, returns only specified sheet.
+    The `fmt` keyword argument determines the format of the return value.
+    Here is the list of accepted formats and the corresponding return value type:
+      * `dict`     : list of dicts (Default).
+      * `xlrd`     : xlrd.Book or xlrd.Sheet
+      * `list`     : list of lists
+      * `pandas`   : Pandas.DataFrame
+    For all formats other than `xlrd`, if no sheet name is given, get_file returns
+    a dict with sheet names as keys and accordingly formatted rows as values.
+    """
     opts = default_options()
     opts['title'] = title
     opts.update((k,v) for k, v in load_config(opts).items() if v is not None)
     opts.update((k,v) for k, v in kwargs.items() if v is not None)
     logging.info('opts:\n%s', pprint.pformat(opts))
 
-    sheet = get_sheet(opts)
 
-    if fmt == 'dict':
-        labels = sheet.row_values(0)
-        dict_rows = []
-        for i in range(1,sheet.nrows):
-            dict_row = dict(zip(labels, sheet.row_values(i)))
-            dict_rows.append(dict(filter(lambda (k,v): len(str(v)) > 0, dict_row.items())))
-        rows = dict_rows
-    if fmt == 'xlrd':
-        return rows
-    return rows
-
-
-def get_sheet(opts):
     content = get_content(opts)
     wb = xlrd.open_workbook(file_contents=content)
-    if 'sheet' in opts:
-        sheet = wb.sheet_by_name(opts['sheet'])
-    elif 'sheet_index' in opts:
-        sheet = wb.sheet_by_index(opts['sheet_index'])
+    
+    if fmt == 'xlrd' and 'sheet' not in opts and 'sheet_id' not in opts:
+        return wb
     else:
-        sheet = wb.sheet_by_index(0)
-    return sheet
+        sheets = {}
+        for sn in get_sheet_names(wb, opts):
+            sheet = wb.sheet_by_name(sn)
+            if fmt == 'dict' or fmt=='pandas':
+                labels = sheet.row_values(0)
+                fmt_sheet = []
+                for i in range(1,sheet.nrows):
+                    dict_row = dict(zip(labels, sheet.row_values(i)))
+                    fmt_sheet.append(dict(filter(lambda (k,v): len(unicode(v)) > 0, dict_row.items())))
+                if fmt == 'pandas':
+                    fmt_sheet = pd.DataFrame(fmt_sheet)
+            elif fmt == 'csv':
+                fmt_sheet = [sheet.row_values(i) for i in range(1,sheet.nrows)]
+            sheets[sn] = fmt_sheet
+        if len(sheets) == 0:
+            return sheets.values()[0]
+        else:
+            return sheets
+
+
+def get_sheet_names(wb, opts):
+    if 'sheet' in opts:
+        sns = [opts['sheet']]
+    elif 'sheet_index' in opts:
+        sns = [wb.sheet_names()[opts['sheet_index']]]
+    else:
+        sns = wb.sheet_names()
+    return sns
     
 
 def get_content(opts):
@@ -84,6 +108,7 @@ def get_content(opts):
     if opts['usecache'] and opts['title'] in cache:
         content = cache[opts['title']]
     else:
+        logging.debug('computing from scratch')
         service = get_service(opts)
         files = service.files()
         try:
