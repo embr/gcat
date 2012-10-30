@@ -77,27 +77,37 @@ def get_file(title, fmt='dict', **kwargs):
         else:
             logger.warning('fmt: xlrd and sheet selection not supported, returning whole workbook')
             return wb
-    else: # handle dict and pandas formats
+    else: # parse and handle other formats
         parsed_wb = parse(wb, opts)
         if fmt == 'list':
             fmt_wb = parsed_wb
+        elif fmt == 'dict':
+            fmt_wb = fmt_as_dict(parsed_wb)
+        elif fmt == 'pandas':
+            fmt_wb = fmt_as_pandas(parsed_wb)
         else:
-            fmt_wb = {}
-            for sheet_name, ws in parsed_wb.items():
-                labels = ws[0]
-                fmt_sheet = []
-                for row in ws[1:]:
-                    dict_row = dict(zip(labels, row))
-                    fmt_sheet.append(dict(filter(lambda (k,v): len(unicode(v)) > 0, dict_row.items())))
-                if fmt == 'pandas':
-                    fmt_sheet = pd.DataFrame(fmt_sheet)
-                else:
-                    raise ValueError('unkown format: %s' % fmt)
-                fmt_wb[sheet_name] = fmt_sheet
+            raise ValueError('unkown format: %s' % fmt)
         if len(fmt_wb) == 1:
             return fmt_wb.values()[0]
         else:
             return fmt_wb
+
+
+def fmt_as_dict(parsed_wb):
+    fmt_wb = {}
+    for sheet_name, ws in parsed_wb.items():
+        labels = ws[0]
+        fmt_sheet = []
+        for row in ws[1:]:
+            dict_row = dict(zip(labels, row))
+            fmt_sheet.append(dict(filter(lambda (k,v): len(unicode(v)) > 0, dict_row.items())))
+        fmt_wb[sheet_name] = fmt_sheet
+    return fmt_wb
+
+
+def fmt_as_pandas(parsed_wb):
+    return {sn : pd.DataFrame(sheet) for sn, sheet in fmt_as_dict(parsed_wb).items()}
+
 
 def parse(wb, opts):
     parsers = {
