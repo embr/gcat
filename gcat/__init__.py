@@ -57,9 +57,9 @@ def get_file(title, fmt='dict', **kwargs):
     If keyword argument sheet_name or sheet_id is given, returns only specified sheet.
     The `fmt` keyword argument determines the format of the return value.
     Here is the list of accepted formats and the corresponding return value type:
-      * `dict`     : list of dicts (Default).
-      * `xlrd`     : xlrd.Book (only full workbook is exported)
-      * `list`     : list of lists
+      * `dict`           : list of dicts (Default).
+      * `xlrd`           : xlrd.Book (only full workbook is exported)
+      * `list`           : list of lists
       * `pandas_excel`   : Pandas.ExcelFile, usefule for custom parsing
     For all formats other than `xlrd`, if no sheet name is given, get_file returns
     a dict with sheet names as keys and accordingly formatted rows as values.
@@ -81,7 +81,6 @@ def get_file(title, fmt='dict', **kwargs):
     except:
         logger.exception('error parsing worksheet using pandas.ExcelFile.parse(sheet_name). '
                          'Consider using pandas_excel and parsing the file yourself to have more control')
-    parsed_wb = parse(wb, opts)
     if fmt == 'list':
         fmt_wb = {name : list(df.itertuples()) for name, df in parsed_wb.items()}
     elif fmt == 'dict':
