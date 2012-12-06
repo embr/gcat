@@ -17,7 +17,7 @@ a crontab line like:
 0 0 1 * * gcat My Google Doc | cut -f1,4 | xargs my_utility
 ````
 
-or create a set of automatically updated files which live on Google Drive
+or create a set of automatically updated copies of files which live on Google Drive
 
 ````
 0 0 1 * * gcat My Google Doc > /home/embr/data/mydoc`date +"\%Y-\%m-\%d"`.csv
@@ -52,7 +52,7 @@ In order to actually use the tool to access the document however, you'll need to
 register your installation as an "installed application" with Google. To do this, follow the instuctions from Google [here](https://developers.google.com/drive/quickstart).
 Once you've installed gcat on your system and gone through the registration process,
 you'll need to copy the client id, client secret, into the config file created at `~/.gcat/config`
-replacing <your_client_id_here> and <your_client_id_here> with your actual information.
+replacing `<your_client_id_here>` and `<your_client_id_here>` with your actual information.
 Upon installing gcat the following stub file will be created, so you only need to fill in
 your fields
 
