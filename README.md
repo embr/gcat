@@ -17,7 +17,7 @@ a crontab line like:
 0 0 1 * * gcat My Google Doc | cut -f1,4 | xargs my_utility
 ````
 
-or create a set of automatically updated files which live on Google Drive
+or create a set of automatically updated copies of files which live on Google Drive
 
 ````
 0 0 1 * * gcat My Google Doc > /home/embr/data/mydoc`date +"\%Y-\%m-\%d"`.csv
