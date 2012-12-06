@@ -14,7 +14,7 @@ import logging
 from operator import itemgetter
 from collections import defaultdict
 import webbrowser
-import yaml, csv, json, xlrd, pprint
+import yaml, csv, json, pprint
 import StringIO
 import shelve
 import pandas as pd
@@ -53,14 +53,14 @@ def load_config(opts):
 def get_file(title, fmt='dict', **kwargs):
     """
     Simple interface for grabbing a Google Drive file by title.  Retrieves
-    file in xlsx format and parses with `xlrd` (http://pypi.python.org/pypi/xlrd).
+    file in xlsx format and parses with pandas.ExcelFile
     If keyword argument sheet_name or sheet_id is given, returns only specified sheet.
     The `fmt` keyword argument determines the format of the return value.
     Here is the list of accepted formats and the corresponding return value type:
       * `dict`           : list of dicts (Default).
-      * `xlrd`           : xlrd.Book (only full workbook is exported)
+      * `pandas`         : pandas.DataFrame
       * `list`           : list of lists
-      * `pandas_excel`   : Pandas.ExcelFile, usefule for custom parsing
+      * `pandas_excel`   : Pandas.ExcelFile, (not yet parsed) useful for custom parsing
     For all formats other than `xlrd`, if no sheet name is given, get_file returns
     a dict with sheet names as keys and accordingly formatted rows as values.
     """
@@ -100,6 +100,7 @@ def get_file(title, fmt='dict', **kwargs):
             raise
     else:
         return fmt_wb
+
 
 def get_content(opts):
     cache = shelve.open(opts['cache'])
