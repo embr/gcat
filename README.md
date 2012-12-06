@@ -47,6 +47,8 @@ $ cd gcat/
 $ [sudo] pip install -e .
 ````
 
+A word of warning that this installs [pandas](http://pandas.pydata.org/) which depends on numpy 1.6, which often cannot be easily updated using pip.  See [this stackoverflow post](http://stackoverflow.com/questions/12436979/how-to-fix-python-numpy-pandas-installation) for a solution.
+
 ### Google Drive SDK
 In order to actually use the tool to access the document however, you'll need to first
 register your installation as an "installed application" with Google. To do this, follow the instuctions from Google [here](https://developers.google.com/drive/quickstart).
