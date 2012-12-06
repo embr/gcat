@@ -91,6 +91,13 @@ def get_file(title, fmt='dict', **kwargs):
         raise ValueError('unkown format: %s' % fmt)
     if len(fmt_wb) == 1:
         return fmt_wb.values()[0]
+    if 'sheet' in opts:
+        try:
+            return fmt_wb[opts['sheet']]
+        except:
+            print 'sheet name: `%s` not found in workbook.  sheet_names: %s' % (opts['sheet'], fmt_wb.keys())
+            logger.exception('sheet name: %s not found in workbook.  sheet_names: %s', opts['sheet'], fmt_wb.keys())
+            raise
     else:
         return fmt_wb
 
@@ -225,17 +232,13 @@ def parse_args(**kwopts):
                         required=True,
                         help='the name of the google drive file in question.  If the name has spaces, gcat will do the '
                         ' right thing and join a sequence of command line arguments with space')
-    sheet_group = parser.add_mutually_exclusive_group()
-    sheet_group.add_argument('--sheet',
+    parser.add_argument('--sheet',
                         nargs='+',
                         metavar='sheet_word',
                         action=Join,
                         help='sheet name within the spreadsheet.  If neither --sheet nor --sheet_id arguments are given '
                         'gcat will default to sheet_id=0. If the name has spaces, gcat will do the right thing and join '
                         'a sequence of command line arguments with spaces.')
-    sheet_group.add_argument('--sheet_id',
-                        type=int,
-                        help='sheet index within the spreadsheet.')
     parser.add_argument('--cache',
                         help='location in which gcat will store documents when the --usecache flag is given')
     parser.add_argument('--usecache',
