@@ -12,7 +12,7 @@ import re
 import logging
 
 from operator import itemgetter
-from collections import defaultdict
+from collections import defaultdict, OrderedDict
 import webbrowser
 import yaml, csv, json, pprint
 import StringIO
@@ -50,7 +50,7 @@ def load_config(opts):
         return {}
 
 
-def get_file(title, fmt='dict', **kwargs):
+def get_file(title=None, fmt='dict', **kwargs):
     """
     Simple interface for grabbing a Google Drive file by title.  Retrieves
     file in xlsx format and parses with pandas.ExcelFile If keyword argument `sheet` is given,
@@ -80,6 +80,8 @@ def get_file(title, fmt='dict', **kwargs):
     opts.update((k,v) for k, v in load_config(opts).items() if v is not None)
     opts.update((k,v) for k, v in kwargs.items() if v is not None)
     logger.info('opts:\n%s', pprint.pformat(opts))
+    if opts['title'] is None:
+        raise ValueError('`title` not found in options.  exiting')
 
     content = get_content(opts)
     wb = pd.ExcelFile(StringIO.StringIO(content))
@@ -88,14 +90,15 @@ def get_file(title, fmt='dict', **kwargs):
         return wb
     
     try:
-        parsed_wb = {sheet_name : wb.parse(sheet_name) for sheet_name in wb.sheet_names}
+        print 'sheets: %s' % wb.sheet_names
+        parsed_wb = OrderedDict([(sheet_name, wb.parse(sheet_name)) for sheet_name in wb.sheet_names])
     except:
         logger.exception('error parsing worksheet using pandas.ExcelFile.parse(sheet_name). '
                          'Consider using pandas_excel and parsing the file yourself to have more control')
     if fmt == 'list':
-        fmt_wb = {name : list(df.itertuples()) for name, df in parsed_wb.items()}
+        fmt_wb = OrderedDict([(name, list(df.itertuples(index=False))) for name, df in parsed_wb.items()])
     elif fmt == 'dict':
-        fmt_wb = {name : [r[1].to_dict() for r in df.iterrows()] for name, df in parsed_wb.items()}
+        fmt_wb = OrderedDict([(name, [r[1].to_dict() for r in df.iterrows()]) for name, df in parsed_wb.items()])
     elif fmt == 'pandas':
         fmt_wb = parsed_wb
     else:
@@ -237,20 +240,19 @@ def parse_args(**kwopts):
                         'section.  By default a client if assigned two valid redirect URIs: urn:ietf:wg:oauth:2.0:oob '
                         'and http://localhostl.  use the urn:ietf:wg:oauth:2.0:oob unless you are doing something fancy.'
                         'see https://developers.google.com/accounts/docs/OAuth2InstalledApp for more info')
-    parser.add_argument('--title',
+    parser.add_argument('title',
                         nargs='+',
                         metavar='title_word',
                         action=Join,
-                        required=True,
                         help='the name of the google drive file in question.  If the name has spaces, gcat will do the '
                         ' right thing and join a sequence of command line arguments with space')
     parser.add_argument('--sheet',
                         nargs='+',
                         metavar='sheet_word',
                         action=Join,
-                        help='sheet name within the spreadsheet.  If neither --sheet nor --sheet_id arguments are given '
-                        'gcat will default to sheet_id=0. If the name has spaces, gcat will do the right thing and join '
-                        'a sequence of command line arguments with spaces.')
+                        help='sheet name within the spreadsheet.  If no sheet is given, will return first sheet'
+                        'If the name has spaces, gcat will do the right thing and join '
+                        'a sequence of command line arguments with spaces into a single document title.')
     parser.add_argument('--cache',
                         help='location in which gcat will store documents when the --usecache flag is given')
     parser.add_argument('--usecache',
@@ -276,7 +278,9 @@ def main():
     logger.addHandler(ch)
     logger.setLevel(logging.DEBUG)
 
-    content = get_file(as_dict=False, **parse_args())
+    content = get_file(fmt='list', **parse_args())
+    if isinstance(content, dict):
+        content = content.values()[0]
     write_to_stdout(content)
 
 
