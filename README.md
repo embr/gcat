@@ -1,35 +1,20 @@
 gcat
 ====
 
-A simple utility for grabbing Google Drive spreadsheets and printing them to the command-line stdout
+A simple utility for grabbing Google Drive spreadsheets from python or printing them to the command-line stdout
 
 ##Introduction
-`gcat` is simple command-line utility aimed at helping analysts integrate spreadsheets
-living in Google Drive into their existing command-line environment by printing a file to stdout.
-By default it stores installation specific configuration in `~/.gcat/config` and 
+Basically, the Google Drive API documentation is a mess and a lot of work for simple cases where you just want to grab a file. `gcat` is simple python wrapper for the Google Drive API which aims to simplify the process.  After an initial setup of OAuth you can grab the contents of a file with a single Python function call or a command line utility.  This makes it easy to integrate manually curated data with a more programatic analysis pipeline.
+
+This By default it stores installation specific configuration in `~/.gcat/config` and 
 stores user specific credentials as a json object in `~/.gcat/store`.
 
-As a simple example, perhaps you have a cron job that needs to integrate information updated in a Google
-spreadsheet.  You can downlaod the file, extract some columns and pipe the rows to the relevant utility with
-a crontab line like:
-
-````
-0 0 1 * * gcat My Google Doc | cut -f1,4 | xargs my_utility
-````
-
-or create a set of automatically updated copies of files which live on Google Drive
-
-````
-0 0 1 * * gcat My Google Doc > /home/embr/data/mydoc`date +"\%Y-\%m-\%d"`.csv
-````
-
-In addition to the `gcat` command-line utility the gcat module also provides a programmatic interface for grabbing
-Google Drive documents with a single line (assuming you've already set up your config file).
+Probably the most common use case for `gcat` is just programmatically grabbing
+Google Drive documents, which is as easy as:
 
 ````python
 import gcat
 rows = gcat.get_file('My File Name')
-print rows
 ````
 
 which returns a list of dicts that might look like this for a restaurant review document populated by a Google Form:
@@ -37,6 +22,35 @@ which returns a list of dicts that might look like this for a restaurant review 
 ````
 [{'reviewer' : 'Evan Rosen', 'restaurant' : 'Bar Tartine', 'Food' : 22, 'Decor' : 19, 'Service' : 17, 'Cost' : '$$'}
  {'reviewer' : 'Evan Rosen', 'restaurant' : 'Delfina', 'Food' : 21, 'Decor' : 20, 'Service' : 20, 'Cost' : '$$$'}]
+````
+
+If you wanted to work with the data using the [pandas](http://pandas.pydata.org/) DataFrame object you would just pass in the `fmt` keyword as 'pandas' like this:
+
+````python
+>>> reviews = gcat.get_file('My File Name', fmt='pandas')
+
+<class 'pandas.core.frame.DataFrame'>
+Int64Index: 2000 entries, 0 to 1
+Data columns:
+Cost          2000  non-null values
+Decor         2000  non-null values
+Food          2000  non-null values
+Service       2000  non-null values
+restaurant    2000  non-null values
+reviewer      2000  non-null values
+dtypes: int64(3), object(3)
+````
+
+Or, you might want to do a little more command-line fu and run a cronjob with your data like this:
+
+````
+0 0 1 * * gcat My Google Doc | cut -f1,4 | xargs my_utility
+````
+
+or create a set of automatically synced copies of files which live on Google Drive
+
+````
+0 0 1 * * gcat My Google Doc > /home/embr/data/mydoc_`date +"\%Y-\%m-\%d"`.tsv
 ````
 
 ## Installation
@@ -66,6 +80,25 @@ redirect_uri:  'urn:ietf:wg:oauth:2.0:oob'
 ````
 
 ## Usage
+
+### gcat.get_file(title, fmt='dict', **kwargs)
+
+````
+>>> help(gcat.get_file)
+
+Simple interface for grabbing a Google Drive file by title.  Retrieves
+file in xlsx format and parses with pandas.ExcelFile
+If keyword argument sheet_name or sheet_id is given, returns only specified sheet.
+The `fmt` keyword argument determines the format of the return value.
+Here is the list of accepted formats and the corresponding return value type:
+  * `dict`           : list of dicts (Default).
+  * `pandas`         : pandas.DataFrame
+  * `list`           : list of lists
+  * `pandas_excel`   : Pandas.ExcelFile, (not yet parsed) useful for custom parsing
+For all formats other than `pandas_excel`, if no sheet name is given and the spreadsheet
+contains more than one sheet, get_file returns a dict with sheet names as keys and accordingly
+formatted sheets as values.
+````
 
 `gcat` allows you to customize most parameters through the command line.  For example, you can override the
 client id/secret in the config file or the location which it uses to store credentials or where to look
