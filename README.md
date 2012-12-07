@@ -85,44 +85,46 @@ redirect_uri:  'urn:ietf:wg:oauth:2.0:oob'
 
 ````
 >>> help(gcat.get_file)
-
-Simple interface for grabbing a Google Drive file by title.  Retrieves
-file in xlsx format and parses with pandas.ExcelFile
-If keyword argument sheet_name or sheet_id is given, returns only specified sheet.
-The `fmt` keyword argument determines the format of the return value.
-Here is the list of accepted formats and the corresponding return value type:
-  * `dict`           : list of dicts (Default).
-  * `pandas`         : pandas.DataFrame
-  * `list`           : list of lists
-  * `pandas_excel`   : Pandas.ExcelFile, (not yet parsed) useful for custom parsing
-For all formats other than `pandas_excel`, if no sheet name is given and the spreadsheet
-contains more than one sheet, get_file returns a dict with sheet names as keys and accordingly
-formatted sheets as values.
-````
-
-`gcat` allows you to customize most parameters through the command line.  For example, you can override the
-client id/secret in the config file or the location which it uses to store credentials or where to look
-for the config file.  To see the command-line options, just type:
-
-````
-gcat -h
-````
-
-which should print
+gcat.get_file = get_file(title, fmt='dict', **kwargs)
+    Simple interface for grabbing a Google Drive file by title.  Retrieves
+    file in xlsx format and parses with pandas.ExcelFile If keyword argument `sheet` is given,
+    returns only specified sheet.
+    args:
+        title     (str)   : Title of Google Drive document
+        fmt       (str)   : Determines the format of the return value.
+                            list of accepted formats and the corresponding return value type:
+                            * `dict`           : list of dicts (Default).
+                            * `pandas`         : pandas.DataFrame
+                            * `list`           : list of lists
+                            * `pandas_excel`   : Pandas.ExcelFile, (not yet parsed) useful for custom parsing
+                            For all formats other than `pandas_excel`, if no sheet name is given and the spreadsheet
+                            contains more than one sheet, get_file returns a dict with sheet names as keys and accordingly
+                            formatted sheets as values.
+    kwargs:
+        sheet     (str)   : name of sheet to return
+        cache     (str)   : location in which to store the cached contents of files
+        usecache  (bool)  : whether to use the cache (default is False), but useful for debugging
+        config    (str)   : path from which to read the config file which contains credentials
+        store     (str)   : location in which to store file-specific credentials
 
 ````
-usage: gcat.py [-h] [--store STORE] [--config CONFIG] [--client_id CLIENT_ID]
-               [--client_secret CLIENT_SECRET] [--scope SCOPE]
-               [--redirect_uri REDIRECT_URI]
-               title [title ...]
+
+### `gcat` command-line utility
+
+````
+$ gcat -h
+usage: gcat [-h] [--store STORE] [--config CONFIG] [--client_id CLIENT_ID]
+            [--client_secret CLIENT_SECRET] [--scope SCOPE]
+            [--redirect_uri REDIRECT_URI]
+            [--sheet sheet_word [sheet_word ...]] [--cache CACHE] [--usecache]
+            title_word [title_word ...]
 
 print a google spreadsheet to stdout
 
 positional arguments:
-  title                 The name of the google drive file in question. If the
-                        name has spaces, gcat will do the right thing and
-                        treat a sequence of space delimited words as a single
-                        file name
+  title_word            the name of the google drive file in question. If the
+                        name has spaces, gcat will do the right thing and join
+                        a sequence of command line arguments with space
 
 optional arguments:
   -h, --help            show this help message and exit
@@ -149,5 +151,14 @@ optional arguments:
                         the urn:ietf:wg:oauth:2.0:oob unless you are doing
                         something fancy.see https://developers.google.com/acco
                         unts/docs/OAuth2InstalledApp for more info
-
+  --sheet sheet_word [sheet_word ...]
+                        sheet name within the spreadsheet. If no sheet is
+                        given, will return first sheetIf the name has spaces,
+                        gcat will do the right thing and join a sequence of
+                        command line arguments with spaces into a single
+                        document title.
+  --cache CACHE         location in which gcat will store documents when the
+                        --usecache flag is given
+  --usecache            instructs gcat to use the cache located in a file
+                        specified by the --cache option
 ````
