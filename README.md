@@ -81,7 +81,7 @@ redirect_uri:  'urn:ietf:wg:oauth:2.0:oob'
 
 ## Usage
 
-### gcat.get_file(title, fmt='dict', **kwargs)
+### `gcat.get_file()` Python function
 
 ````
 >>> help(gcat.get_file)
