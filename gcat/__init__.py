@@ -53,16 +53,27 @@ def load_config(opts):
 def get_file(title, fmt='dict', **kwargs):
     """
     Simple interface for grabbing a Google Drive file by title.  Retrieves
-    file in xlsx format and parses with pandas.ExcelFile
-    If keyword argument sheet_name or sheet_id is given, returns only specified sheet.
-    The `fmt` keyword argument determines the format of the return value.
-    Here is the list of accepted formats and the corresponding return value type:
-      * `dict`           : list of dicts (Default).
-      * `pandas`         : pandas.DataFrame
-      * `list`           : list of lists
-      * `pandas_excel`   : Pandas.ExcelFile, (not yet parsed) useful for custom parsing
-    For all formats other than `xlrd`, if no sheet name is given, get_file returns
-    a dict with sheet names as keys and accordingly formatted rows as values.
+    file in xlsx format and parses with pandas.ExcelFile If keyword argument `sheet` is given,
+    returns only specified sheet.
+    args:
+        title     (str)   : Title of Google Drive document
+        fmt       (str)   : Determines the format of the return value.
+                            list of accepted formats and the corresponding return value type:
+                            * `dict`           : list of dicts (Default).
+                            * `pandas`         : pandas.DataFrame
+                            * `list`           : list of lists
+                            * `pandas_excel`   : Pandas.ExcelFile, (not yet parsed) useful for custom parsing
+                            For all formats other than `pandas_excel`, if no sheet name is given and the spreadsheet
+                            contains more than one sheet, get_file returns a dict with sheet names as keys and accordingly
+                            formatted sheets as values.
+    kwargs:
+        sheet     (str)   : name of sheet to return
+        cache     (str)   : location in which to store the cached contents of files
+        usecache  (bool)  : whether to use the cache (default is False), but useful for debugging
+        config    (str)   : path from which to read the config file which contains credentials
+        store     (str)   : location in which to store file-specific credentials
+        
+
     """
     opts = default_options()
     opts['title'] = title
