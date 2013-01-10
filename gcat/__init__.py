@@ -3,15 +3,19 @@
 from oauth2client.client import  OAuth2WebServerFlow, OAuth2Credentials
 from oauth2client.file import Storage
 from apiclient.discovery import build
+from apiclient.http import MediaFileUpload
 from apiclient import errors
 import httplib2
 
 import argparse
 import sys, os.path
 import re
+import time
 import logging
 
+
 from operator import itemgetter
+import collections
 from collections import defaultdict, OrderedDict
 import webbrowser
 import yaml, csv, json, pprint
@@ -114,6 +118,75 @@ def get_file(title=None, fmt='dict', **kwargs):
             raise
     else:
         return fmt_wb
+
+
+def write_xlsx(dfs, fname, sheet_names=None):
+    if isinstance(dfs, pd.DataFrame):
+        dfs = [dfs]
+    if isinstance(dfs, collections.Sequence):
+        if sheet_names is not None:
+            assert len(sheet_names) == len(dfs), 'sheet_names must have the same length as the `dfs` Sequence'
+        else:
+            sheet_names = ['Sheet %d' % i for i in range(len(dfs))]
+        dfs = dict(zip(sheet_names, dfs))
+    assert isinstance(dfs,collections.Mapping), 'dfs must either be a DataFrame, a Sequence of DataFrames or Mapping from strs to DataFrames'
+
+    writer = pd.ExcelWriter(fname)
+    for sheet_name, df in dfs.items():
+        df.to_excel(writer, sheet_name)
+    writer.save()
+
+
+def put_file(title=None, data=None, sheet_names=None, fname=None, **kwargs):
+    """
+    Simple tool for writing Google Drive Spreadsheets.
+    Args:
+      title (str)  : name which spreadsheet will show up with on Google Drive (required)
+      data         : either an object from which a pandas.DataFrame can be constructed
+                     (including a DataFrame) or a list of such objects, or a dict which maps
+                     strs to such objects.  If a single object or list of object is passed in
+                     sheet names will be constructed as 'Sheet %d'.  If a dict is passed in
+                     then the keys will be used as sheet names.  This allows a smooth round trip
+                     when used in conjunction with gcat.get_file, which returns a dict of
+                     sheet_names and sheets in the event that there is more than one sheet.
+      sheet_names (list(str))
+                   : list of sheet_names to use when passing in a list of data objects
+
+      fname (str)  : name of file on local filesystem if uploading an external xlsx file
+      **kwargs     : options for configuring the OAuth stuff and which will be merged with
+                     any options passed in from the command line or read in from the config file.
+    """
+    opts = default_options()
+    opts['title'] = title
+    opts['fname'] = fname
+    opts['data'] = data
+    opts['sheet_names'] = sheet_names
+    opts.update((k,v) for k, v in load_config(opts).items() if v is not None)
+    opts.update((k,v) for k, v in kwargs.items() if v is not None)
+    if opts['title'] is None:
+        raise ValueError('`title` not found in options. exiting')
+    if opts['fname'] is None:
+        if opts['data'] is not None:
+            fname = os.path.join(os.environ['TMPDIR'], str(int(time.time())))
+            write_xlsx(data, fname, sheet_names)
+        else:
+            raise ValueError('neither `title` nor `data` found in options. exiting')
+
+    mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    media_body = MediaFileUpload(fname, mimetype=mimetype, resumable=True)
+    body = {
+            'title': title,
+            'description': '',
+            'mimeType': mimetype}
+    service = get_service(opts)
+    try:
+       file = service.files().insert(
+                body=body,
+                media_body=media_body,
+                convert=True).execute()
+                                
+    except errors.HttpError, error:
+        logger.exception('An error occured while attempting to insert file: %s', title)
 
 
 def get_content(opts):
