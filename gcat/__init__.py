@@ -133,6 +133,10 @@ def write_xlsx(dfs, fname, sheet_names=None):
 
     writer = pd.ExcelWriter(fname)
     for sheet_name, df in dfs.items():
+        try:
+            df = pd.DataFrame(df)
+        except:
+            logger.exception('could not convert data object: %s into pandas.DataFrame', df)
         df.to_excel(writer, sheet_name)
     writer.save()
 
