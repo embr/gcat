@@ -150,7 +150,7 @@ def write_xlsx(data, fname, sheet_names=None):
     writer.save()
 
 
-def put_file(title=None, data=None, sheet_names=None, fname=None, **kwargs):
+def put_file(title=None, data=None, sheet_names=None, fname=None, update=False, **kwargs):
     """
     Simple tool for writing Google Drive Spreadsheets.
     Args:
@@ -166,6 +166,9 @@ def put_file(title=None, data=None, sheet_names=None, fname=None, **kwargs):
                    : list of sheet_names to use when passing in a list of data objects
 
       fname (str)  : name of file on local filesystem if uploading an external xlsx file
+      update (bool): whether to update a file with title `title`.  If put_file is
+                     called with a title of a preexisting file, it will simply create a duplicate
+                     document with the same title (but a different internal Google Drive id)
       **kwargs     : options for configuring the OAuth stuff and which will be merged with
                      any options passed in from the command line or read in from the config file.
 
@@ -187,6 +190,7 @@ def put_file(title=None, data=None, sheet_names=None, fname=None, **kwargs):
     opts['fname'] = fname
     opts['data'] = data
     opts['sheet_names'] = sheet_names
+    opts['update'] = update
     opts.update((k,v) for k, v in load_config(opts).items() if v is not None)
     opts.update((k,v) for k, v in kwargs.items() if v is not None)
     if opts['title'] is None:
@@ -206,14 +210,45 @@ def put_file(title=None, data=None, sheet_names=None, fname=None, **kwargs):
             'mimeType': mimetype}
     service = get_service(opts)
     try:
-       file = service.files().insert(
+        orig_file = get_file(service, opts)
+        if orig_file is not None and opts['update']:
+            file = service.files().update(
+                fileId = orig_file['id'],
+                body=body,
+                media_body=media_body,
+                newRevision=True,
+                convert=True).execute() 
+        else:
+            if not opts['update']:
+                logger.warning('creating file with duplicate name: %s', opts['title']) 
+            file = service.files().insert(
                 body=body,
                 media_body=media_body,
                 convert=True).execute()
-                                
+ 
     except errors.HttpError, error:
         logger.exception('An error occured while attempting to insert file: %s', title)
 
+
+def get_file(service, opts):
+    files = service.files()
+    try:
+        res = files.list().execute()
+    except errors.HttpError, error:
+        logger.error('An error occurred: %s', exc_info=error)
+        raise error
+
+    files = res['items']
+    fs = [f for f in files if f['title'] == opts['title'] ]
+    if not fs:
+        logger.error('file title: %s not in list', opts['title'])
+        return None
+    if len(fs) > 1:
+        print 'found more than one file in google drivei matching title %s:\n%s' % (opts['title'], '\n'.join([f['alternateLink'] for f in fs]))
+        logger.warning('title `%s` matches several files in Google Drive.  Using first item in the following link:\n%s',
+                opts['title'], '\n'.join([f['alternateLink'] for f in fs]))
+    file = fs[0]
+    return file
 
 def get_content(opts):
     cache = shelve.open(opts['cache'])
@@ -222,22 +257,10 @@ def get_content(opts):
     else:
         logger.debug('computing from scratch')
         service = get_service(opts)
-        files = service.files()
-        try:
-            res = files.list().execute()
-        except errors.HttpError, error:
-            logger.error('An error occurred: %s', exc_info=error)
-            raise error
-
-        names = map(itemgetter('title'), res['items'])
-        try:
-            idx = names.index(opts['title'])
-        except ValueError:
-            logger.error('file name: %s not in list', opts['title'])
+        file = get_file(service, opts)
+        if file is None:
+            logger.exception('file `%s` could not be found', opts['title'])
             sys.exit()
-        if idx == -1:
-            raise ValueError('name %s not found in Google Drive' % opts['title'])
-        file = res['items'][idx]
         content = download(service, file)
         cache[opts['title']] = content
     return content
