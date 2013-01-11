@@ -94,7 +94,6 @@ def get_file(title=None, fmt='dict', **kwargs):
         return wb
     
     try:
-        print 'sheets: %s' % wb.sheet_names
         parsed_wb = OrderedDict([(sheet_name, wb.parse(sheet_name)) for sheet_name in wb.sheet_names])
     except:
         logger.exception('error parsing worksheet using pandas.ExcelFile.parse(sheet_name). '
@@ -120,16 +119,26 @@ def get_file(title=None, fmt='dict', **kwargs):
         return fmt_wb
 
 
-def write_xlsx(dfs, fname, sheet_names=None):
-    if isinstance(dfs, pd.DataFrame):
-        dfs = [dfs]
-    if isinstance(dfs, collections.Sequence):
-        if sheet_names is not None:
-            assert len(sheet_names) == len(dfs), 'sheet_names must have the same length as the `dfs` Sequence'
-        else:
-            sheet_names = ['Sheet %d' % i for i in range(len(dfs))]
-        dfs = dict(zip(sheet_names, dfs))
-    assert isinstance(dfs,collections.Mapping), 'dfs must either be a DataFrame, a Sequence of DataFrames or Mapping from strs to DataFrames'
+def write_xlsx(data, fname, sheet_names=None):
+    logger.debug('data: %s')
+    if not isinstance(data, collections.Mapping):
+        try:
+            logger.debug('attempting to construct pd.DataFrame from data')
+            dfs = {'Sheet 1' : pd.DataFrame(data)}
+        except:
+            logger.debug('exception while constructing pd.DataFrame, checking for sequence')
+            if isinstance(data, collections.Sequence):
+                logger.debug('constructing dict from sequence')
+                if sheet_names is not None:
+                    assert len(sheet_names) == len(data), 'sheet_names must have the same length as the `dfs` Sequence'
+                else:
+                    sheet_names = ['Sheet %d' % i for i in range(len(data))]
+                dfs = dict(zip(sheet_names, data))
+            else:
+                dfs = data
+    else:
+        dfs = data
+    assert isinstance(dfs, collections.Mapping), 'type: %s, dfs: %s' % (type(dfs), dfs)
 
     writer = pd.ExcelWriter(fname)
     for sheet_name, df in dfs.items():
@@ -159,6 +168,19 @@ def put_file(title=None, data=None, sheet_names=None, fname=None, **kwargs):
       fname (str)  : name of file on local filesystem if uploading an external xlsx file
       **kwargs     : options for configuring the OAuth stuff and which will be merged with
                      any options passed in from the command line or read in from the config file.
+
+    Example:
+
+        >>> import pandas as pd
+        >>> import gcat
+        >>> df1 = pd.DataFrame({'x' : [1,2], 'y' : [2,3]})
+        >>> df2 = pd.DataFrame({'a' : [7,8], 'b' : [8,9]})
+        >>> wb = {'sheet1' : df1, 'sheet2' : df2}              # put sheets together as dict
+        >>> gcat.put_file(title='gcat_put_test', data=wb)      # put original
+        >>> df2 = gcat.get_file('gcat_put_test', fmt='pandas') # download
+        >>> df2['sheet1'].ix[1,1] = 17                         # update
+        >>> gcat.put_file(title='gcat_put_test', data=df2)     # putting updated copy
+
     """
     opts = default_options()
     opts['title'] = title
