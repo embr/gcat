@@ -5,6 +5,7 @@ A simple library and utility for interacting with Google Drive spreadsheets from
 
 * [Introduction](https://github.com/embr/gcat#introduction)
 * [Installation](https://github.com/embr/gcat#installation)
+  * [Google Drive SDK] https://github.com/embr/gcat/blob/master/README.md#google-drive-sdk
 * [Library Usage](https://github.com/embr/gcat#library-usage)
   * [`gcat.get_file()`](https://github.com/embr/gcat#gcatget_file-python-function)
   * [`gcat.put_file()`](https://github.com/embr/gcat#gcatput_file-python-function)
