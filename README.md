@@ -1,7 +1,7 @@
 gcat
 ====
 
-A simple library and utility for interacting Google Drive spreadsheets from python or printing them to the command-line stdout
+A simple library and utility for interacting with Google Drive spreadsheets from python or the command-line
 
 * [Introduction](https://github.com/embr/gcat#introduction)
 * [Installation](https://github.com/embr/gcat#installation)
