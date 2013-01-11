@@ -1,7 +1,7 @@
 gcat
 ====
 
-A simple utility for grabbing Google Drive spreadsheets from python or printing them to the command-line stdout
+A simple library and utility for interacting Google Drive spreadsheets from python or printing them to the command-line stdout
 
 ##Introduction
 Basically, the Google Drive API documentation is a mess and a lot of work for simple cases where you just want to grab a file. `gcat` is simple python wrapper for the Google Drive API which aims to simplify the process.  After an initial setup of OAuth you can grab the contents of a file with a single Python function call or a command line utility.  This makes it easy to integrate manually curated data with a more programatic analysis pipeline.
@@ -108,6 +108,43 @@ gcat.get_file = get_file(title, fmt='dict', **kwargs)
         store     (str)   : location in which to store file-specific credentials
 
 ````
+
+### `gcat.put_file()` Python function
+
+````
+>>> help(gcat.put_file)
+put_file(title=None, data=None, sheet_names=None, fname=None, **kwargs)
+    Simple tool for writing Google Drive Spreadsheets.
+    Args:
+      title (str)  : name which spreadsheet will show up with on Google Drive (required)
+      data         : either an object from which a pandas.DataFrame can be constructed
+                     (including a DataFrame) or a list of such objects, or a dict which maps
+                     strs to such objects.  If a single object or list of object is passed in
+                     sheet names will be constructed as 'Sheet %d'.  If a dict is passed in
+                     then the keys will be used as sheet names.  This allows a smooth round trip
+                     when used in conjunction with gcat.get_file, which returns a dict of
+                     sheet_names and sheets in the event that there is more than one sheet.
+      sheet_names (list(str))
+                   : list of sheet_names to use when passing in a list of data objects
+    
+      fname (str)  : name of file on local filesystem if uploading an external xlsx file
+      **kwargs     : options for configuring the OAuth stuff and which will be merged with
+                     any options passed in from the command line or read in from the config file.
+    
+    Example:
+    
+        >>> import pandas as pd
+        >>> import gcat
+        >>> df1 = pd.DataFrame({'x' : [1,2], 'y' : [2,3]})
+        >>> df2 = pd.DataFrame({'a' : [7,8], 'b' : [8,9]})
+        >>> wb = {'sheet1' : df1, 'sheet2' : df2}              # put sheets together as dict
+        >>> gcat.put_file(title='gcat_put_test', data=wb)      # put original
+        >>> df2 = gcat.get_file('gcat_put_test', fmt='pandas') # download
+        >>> df2['sheet1'].ix[1,1] = 17                         # update
+        >>> gcat.put_file(title='gcat_put_test', data=df2)     # putting updated copy
+
+````
+
 
 ### `gcat` command-line utility
 
