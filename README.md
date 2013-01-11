@@ -5,7 +5,7 @@ A simple library and utility for interacting Google Drive spreadsheets from pyth
 
 * [Introduction](https://github.com/embr/gcat#introduction)
 * [Installation](https://github.com/embr/gcat#installation)
-* [Library Usage]()
+* [Library Usage](https://github.com/embr/gcat#library-usage)
   * [`gcat.get_file()`](https://github.com/embr/gcat#gcatget_file-python-function)
   * [`gcat.put_file()`](https://github.com/embr/gcat#gcatput_file-python-function)
 * [`gcat` Command Line Utility](https://github.com/embr/gcat#gcat-command-line-utility)
