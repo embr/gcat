@@ -86,7 +86,7 @@ scope:        'https://www.googleapis.com/auth/drive'
 redirect_uri:  'urn:ietf:wg:oauth:2.0:oob'
 ````
 
-## Usage
+## Library Usage
 
 ### `gcat.get_file()` Python function
 
@@ -153,7 +153,7 @@ put_file(title=None, data=None, sheet_names=None, fname=None, **kwargs)
 ````
 
 
-### `gcat` command-line utility
+## `gcat` command-line utility
 
 ````
 $ gcat -h
