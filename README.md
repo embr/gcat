@@ -1,23 +1,31 @@
 gcat
 ====
 
-A simple library and utility for interacting Google Drive spreadsheets from python or printing them to the command-line stdout
+A simple library and utility for interacting with Google Drive spreadsheets from python or the command-line
+
+* [Introduction](https://github.com/embr/gcat#introduction)
+* [Installation](https://github.com/embr/gcat#installation)
+  * [Google Drive SDK] https://github.com/embr/gcat/blob/master/README.md#google-drive-sdk
+* [Library Usage](https://github.com/embr/gcat#library-usage)
+  * [`gcat.get_file()`](https://github.com/embr/gcat#gcatget_file-python-function)
+  * [`gcat.put_file()`](https://github.com/embr/gcat#gcatput_file-python-function)
+* [`gcat` Command Line Utility](https://github.com/embr/gcat#gcat-command-line-utility)
 
 ##Introduction
-Basically, the Google Drive API documentation is a mess and a lot of work for simple cases where you just want to grab a file. `gcat` is simple python wrapper for the Google Drive API which aims to simplify the process.  After an initial setup of OAuth you can grab the contents of a file with a single Python function call or a command line utility.  This makes it easy to integrate manually curated data with a more programatic analysis pipeline.
+Basically, the Google Drive API documentation is a mess and a lot of work for simple cases where you just want to grab a file. `gcat` is a python wrapper for the Google Drive API which aims to simplify the process.  After an initial setup of OAuth you can grab the contents of a file with a single Python function call or a command line utility.  This makes it easy to integrate manually curated data with a more programatic analysis pipeline.
 
-This By default it stores installation specific configuration in `~/.gcat/config` and 
+By default it stores installation specific configuration in `~/.gcat/config` and 
 stores user specific credentials as a json object in `~/.gcat/store`.
 
-Probably the most common use case for `gcat` is just programmatically grabbing
-Google Drive documents, which is as easy as:
+Probably the most common use case for `gcat` is just grabbing a
+Google Drive document from Python, which is as easy as:
 
 ````python
 import gcat
 rows = gcat.get_file('My File Name')
 ````
 
-which returns a list of dicts that might look like this for a restaurant review document populated by a Google Form:
+This returns a list of dicts that might look like this for a restaurant review document populated by a Google Form:
 
 ````
 [{'reviewer' : 'Evan Rosen', 'restaurant' : 'Bar Tartine', 'Food' : 22, 'Decor' : 19, 'Service' : 17, 'Cost' : '$$'}
@@ -41,13 +49,13 @@ reviewer      2000  non-null values
 dtypes: int64(3), object(3)
 ````
 
-Or, you might want to do a little more command-line fu and run a cronjob with your data like this:
+`gcat` also installs a command line utilty which can be useful if you want to do some command-line fu and mix google docs items with the unix tabular data suite.  For example, you might run a cronjob on your data like this:
 
 ````
 0 0 1 * * gcat My Google Doc | cut -f1,4 | xargs my_utility
 ````
 
-or create a set of automatically synced copies of files which live on Google Drive
+or create a set of automatic backups of files which live on Google Drive
 
 ````
 0 0 1 * * gcat My Google Doc > /home/embr/data/mydoc_`date +"\%Y-\%m-\%d"`.tsv
@@ -56,7 +64,12 @@ or create a set of automatically synced copies of files which live on Google Dri
 ## Installation
 `gcat` is packaged with setuptools so it can be easily installed with pip like this:
 
+````bash
+$ pip install -e git+git@github.com:embr/gcat.git#egg=gcat-0.1.0
 ````
+or
+
+````bash
 $ cd gcat/
 $ [sudo] pip install -e .
 ````
@@ -79,7 +92,7 @@ scope:        'https://www.googleapis.com/auth/drive'
 redirect_uri:  'urn:ietf:wg:oauth:2.0:oob'
 ````
 
-## Usage
+## Library Usage
 
 ### `gcat.get_file()` Python function
 
@@ -146,7 +159,7 @@ put_file(title=None, data=None, sheet_names=None, fname=None, **kwargs)
 ````
 
 
-### `gcat` command-line utility
+## `gcat` command-line utility
 
 ````
 $ gcat -h
