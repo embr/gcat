@@ -3,6 +3,13 @@ gcat
 
 A simple library and utility for interacting Google Drive spreadsheets from python or printing them to the command-line stdout
 
+* [Introduction](https://github.com/embr/gcat#introduction)
+* [Installation](https://github.com/embr/gcat#installation)
+* [Library Usage]()
+  * [`gcat.get_file()`](https://github.com/embr/gcat#gcatget_file-python-function)
+  * [`gcat.put_file()`](https://github.com/embr/gcat#gcatput_file-python-function)
+* [`gcat` Command Line Utility](https://github.com/embr/gcat#gcat-command-line-utility)
+
 ##Introduction
 Basically, the Google Drive API documentation is a mess and a lot of work for simple cases where you just want to grab a file. `gcat` is simple python wrapper for the Google Drive API which aims to simplify the process.  After an initial setup of OAuth you can grab the contents of a file with a single Python function call or a command line utility.  This makes it easy to integrate manually curated data with a more programatic analysis pipeline.
 
