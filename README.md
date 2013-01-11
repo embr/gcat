@@ -126,7 +126,7 @@ gcat.get_file = get_file(title, fmt='dict', **kwargs)
 
 ````
 >>> help(gcat.put_file)
-put_file(title=None, data=None, sheet_names=None, fname=None, **kwargs)
+put_file(title=None, data=None, sheet_names=None, fname=None, update=False, **kwargs)
     Simple tool for writing Google Drive Spreadsheets.
     Args:
       title (str)  : name which spreadsheet will show up with on Google Drive (required)
@@ -139,8 +139,10 @@ put_file(title=None, data=None, sheet_names=None, fname=None, **kwargs)
                      sheet_names and sheets in the event that there is more than one sheet.
       sheet_names (list(str))
                    : list of sheet_names to use when passing in a list of data objects
-    
       fname (str)  : name of file on local filesystem if uploading an external xlsx file
+      update (bool): whether to update a file with title `title`.  If put_file is
+                     called with a title of a preexisting file, it will simply create a duplicate
+                     document with the same title (but a different internal Google Drive id)
       **kwargs     : options for configuring the OAuth stuff and which will be merged with
                      any options passed in from the command line or read in from the config file.
     
