@@ -39,6 +39,7 @@ def default_options():
     defaults['cache'] = os.path.expanduser('~/.gcat/cache')
     defaults['usecache'] = False
     defaults['redirect_uri'] = 'urn:ietf:wg:oauth:2.0:oob'
+    defaults['header'] = 0
     return defaults
      
 def load_config(opts):
@@ -76,14 +77,17 @@ def get_file(title=None, fmt='dict', **kwargs):
         usecache  (bool)  : whether to use the cache (default is False), but useful for debugging
         config    (str)   : path from which to read the config file which contains credentials
         store     (str)   : location in which to store file-specific credentials
+        header    (int)   : which row to use as the header. use None for no header in which case
+                            column names will be X1, X2, ...
         
 
     """
     opts = default_options()
     opts['title'] = title
     opts.update((k,v) for k, v in load_config(opts).items() if v is not None)
-    opts.update((k,v) for k, v in kwargs.items() if v is not None)
+    opts.update((k,v) for k, v in kwargs.items())
     logger.info('opts:\n%s', pprint.pformat(opts))
+    #pprint.pprint(opts)
     if opts['title'] is None:
         raise ValueError('`title` not found in options.  exiting')
 
@@ -92,9 +96,9 @@ def get_file(title=None, fmt='dict', **kwargs):
 
     if fmt == 'pandas_excel':
         return wb
-    
+   
     try:
-        parsed_wb = OrderedDict([(sheet_name, wb.parse(sheet_name)) for sheet_name in wb.sheet_names])
+        parsed_wb = OrderedDict([(sheet_name, wb.parse(sheet_name, header=opts['header'])) for sheet_name in wb.sheet_names])
     except:
         logger.exception('error parsing worksheet using pandas.ExcelFile.parse(sheet_name). '
                          'Consider using pandas_excel and parsing the file yourself to have more control')
@@ -146,7 +150,7 @@ def write_xlsx(data, fname, sheet_names=None):
             df = pd.DataFrame(df)
         except:
             logger.exception('could not convert data object: %s into pandas.DataFrame', df)
-        df.to_excel(writer, sheet_name)
+        df.to_excel(writer, sheet_name, index=False)
     writer.save()
 
 
@@ -210,7 +214,7 @@ def put_file(title=None, data=None, sheet_names=None, fname=None, update=False, 
             'mimeType': mimetype}
     service = get_service(opts)
     try:
-        orig_file = get_file(service, opts)
+        orig_file = find_file(service, opts)
         if orig_file is not None and opts['update']:
             file = service.files().update(
                 fileId = orig_file['id'],
@@ -230,7 +234,7 @@ def put_file(title=None, data=None, sheet_names=None, fname=None, update=False, 
         logger.exception('An error occured while attempting to insert file: %s', title)
 
 
-def get_file(service, opts):
+def find_file(service, opts):
     files = service.files()
     try:
         res = files.list().execute()
@@ -257,7 +261,7 @@ def get_content(opts):
     else:
         logger.debug('computing from scratch')
         service = get_service(opts)
-        file = get_file(service, opts)
+        file = find_file(service, opts)
         if file is None:
             logger.exception('file `%s` could not be found', opts['title'])
             sys.exit()
@@ -380,7 +384,17 @@ def parse_args(**kwopts):
     parser.add_argument('--usecache',
                         action='store_true',
                         help='instructs gcat to use the cache located in a file specified by the --cache option')
+    parser.add_argument('--header', 
+                        type=int,
+                        default=0,
+                        help='row to use as header')
+    parser.add_argument('--no-header',
+                        default = False,
+                        action='store_true',
+                        help='if this flag is given is the first row of the file will be treated as data')
     args = parser.parse_args()
+    if args.no_header:
+        setattr(args,'header', None)
     return vars(args)
     
 
