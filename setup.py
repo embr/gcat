@@ -27,7 +27,8 @@ setup(
        "oauth2client >= 1.0",
        "google-api-python-client >= 1.0",
        "httplib2 >= 0.7.6",
-       "pandas >= 0.9.0"
+       "pandas >= 0.9.0",
+       "PyYAML >= 3.10"
        ],
     include_package_data = True,
     classifiers=[
