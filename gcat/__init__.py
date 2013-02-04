@@ -100,8 +100,14 @@ def get_file(title=None, fmt='dict', **kwargs):
     try:
         parsed_wb = OrderedDict([(sheet_name, wb.parse(sheet_name, header=opts['header'])) for sheet_name in wb.sheet_names])
     except:
+        print 'error parsing worksheet using pandas.ExcelFile.parse(sheet_name). '
+                         'Consider using the pandas_excel fmt in get_file and parsing the file '
+                         'yourself to have more control'
         logger.exception('error parsing worksheet using pandas.ExcelFile.parse(sheet_name). '
-                         'Consider using pandas_excel and parsing the file yourself to have more control')
+                         'Consider using the pandas_excel fmt in get_file and parsing the file '
+                         'yourself to have more control')
+        raise
+
     if fmt == 'list':
         fmt_wb = OrderedDict([(name, list(df.itertuples(index=False))) for name, df in parsed_wb.items()])
     elif fmt == 'dict':
@@ -178,7 +184,7 @@ def put_file(title=None, data=None, sheet_names=None, fname=None, update=False, 
 
     Example:
 
-        >>> import pandas as pd
+        e> import pandas as pd
         >>> import gcat
         >>> df1 = pd.DataFrame({'x' : [1,2], 'y' : [2,3]})
         >>> df2 = pd.DataFrame({'a' : [7,8], 'b' : [8,9]})
@@ -248,9 +254,8 @@ def find_file(service, opts):
         logger.error('file title: %s not in list', opts['title'])
         return None
     if len(fs) > 1:
-        print 'found more than one file in google drivei matching title %s:\n%s' % (opts['title'], '\n'.join([f['alternateLink'] for f in fs]))
-        logger.warning('title `%s` matches several files in Google Drive.  Using first item in the following link:\n%s',
-                opts['title'], '\n'.join([f['alternateLink'] for f in fs]))
+        dups = '\n'.join([f['alternateLink'] for f in fs])
+        logger.warning('title `%s` matches several files in Google Drive.  Using first item in the following link:\n%s', opts['title'], dups)  
     file = fs[0]
     return file
 
