@@ -28,7 +28,8 @@ setup(
        "google-api-python-client >= 1.0",
        "httplib2 >= 0.7.6",
        "pandas >= 0.9.0",
-       "PyYAML >= 3.10"
+       "PyYAML >= 3.10",
+       "openpyxl >=1.5.8"
        ],
     include_package_data = True,
     classifiers=[
