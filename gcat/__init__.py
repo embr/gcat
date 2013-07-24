@@ -100,9 +100,9 @@ def get_file(title=None, fmt='dict', **kwargs):
     try:
         parsed_wb = OrderedDict([(sheet_name, wb.parse(sheet_name, header=opts['header'])) for sheet_name in wb.sheet_names])
     except:
-        print 'error parsing worksheet using pandas.ExcelFile.parse(sheet_name). '
-                         'Consider using the pandas_excel fmt in get_file and parsing the file '
-                         'yourself to have more control'
+        print 'error parsing worksheet using pandas.ExcelFile.parse(sheet_name). '\
+              'Consider using the pandas_excel fmt in get_file and parsing the fileA '\
+              'yourself to have more control'
         logger.exception('error parsing worksheet using pandas.ExcelFile.parse(sheet_name). '
                          'Consider using the pandas_excel fmt in get_file and parsing the file '
                          'yourself to have more control')
@@ -251,7 +251,8 @@ def find_file(service, opts):
     files = res['items']
     fs = [f for f in files if f['title'] == opts['title'] ]
     if not fs:
-        logger.error('file title: %s not in list', opts['title'])
+        title_list = sorted([f['title'] for f in files])
+        logger.error('file title: %s not in list:\n%s', opts['title'], pprint.pformat(title_list))
         return None
     if len(fs) > 1:
         dups = '\n'.join([f['alternateLink'] for f in fs])
@@ -262,6 +263,7 @@ def find_file(service, opts):
 def get_content(opts):
     cache = shelve.open(opts['cache'])
     if opts['usecache'] and opts['title'] in cache:
+        logger.info('using cached version of %s', opts['title'])
         content = cache[opts['title']]
     else:
         logger.debug('computing from scratch')
